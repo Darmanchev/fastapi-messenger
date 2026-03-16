@@ -1,0 +1,46 @@
+/* Общие настройки */
+body {
+    background-color: #f0f2f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Стили для форм (вход/регистрация) */
+.auth-card {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 2rem;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* Стили для чата (из предыдущего примера) */
+.chat-container {
+    height: 100vh;
+    width: 100%;
+    /*margin-top: 2rem;*/
+    /*margin-bottom: 2rem;*/
+    background: white;
+    /*border-radius: 12px;*/
+    overflow: hidden;
+}
+
+.messages-area {
+    height: 100%;
+    overflow-y: auto;
+    background-color: #e5ddd5;
+    padding: 15px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: red;
+    font-size: 0.8rem;
+    margin: 1.25rem 0;
+}
