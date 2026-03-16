@@ -1,4 +1,3 @@
-// ── Данные каналов с фиксированными сообщениями ──
 const CHANNELS = [
     {
         id: 1,
@@ -9,7 +8,7 @@ const CHANNELS = [
             { from: 'Alice',  me: false, text: 'Привет всем! Добро пожаловать в #general 👋' },
             { from: 'Bob',    me: false, text: 'Спасибо! Рад быть здесь.' },
             { from: 'You',    me: true,  text: 'Всем привет! Чем занимаемся?' },
-            { from: 'Alice',  me: false, text: 'Пишем мессенджер для универа 😄' },
+            { from: 'Alice',  me: false, text: 'Пишем мессенджер для универа' },
         ]
     },
     {
@@ -18,7 +17,7 @@ const CHANNELS = [
         icon: '🎲',
         color: '20c997',
         messages: [
-            { from: 'Dave',   me: false, text: 'Видели новый мем про JavaScript? 😂' },
+            { from: 'Dave',   me: false, text: 'Видели новый мем про JavaScript?' },
             { from: 'Eve',    me: false, text: 'Хаха, да! Очень точно.' },
             { from: 'You',    me: true,  text: 'Скиньте ссылку!' },
             { from: 'Dave',   me: false, text: 'Секунду, ищу...' },
@@ -94,13 +93,13 @@ function renderChannels(list) {
     });
 }
 
-// ── Фильтр каналов по поиску ──
+// ── Filter channels ──
 function filterChannels(q) {
     const filtered = CHANNELS.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
     renderChannels(filtered);
 }
 
-// ── Переключение канала ──
+// ── Switch channel ──
 function switchChannel(id) {
     currentId = id;
     const ch = CHANNELS.find(c => c.id === id);
@@ -114,7 +113,7 @@ function switchChannel(id) {
     renderMessages(ch.messages);
 }
 
-// ── Рендер сообщений ──
+// ── Rendering messages ──
 function renderMessages(msgs) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
@@ -134,7 +133,7 @@ function renderMessages(msgs) {
     area.scrollTop = area.scrollHeight;
 }
 
-// ── Отправка нового сообщения ──
+// ── Send message ──
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
@@ -148,5 +147,5 @@ function sendMessage() {
     renderChannels(CHANNELS);
 }
 
-// ── Загрузить первый канал при старте ──
+// ── Load first channel at start ──
 switchChannel(1);
