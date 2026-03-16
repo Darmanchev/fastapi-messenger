@@ -5,3 +5,4 @@
 virtualenvs/
 __pycache__/
 *.pyc
+postgres_data/
