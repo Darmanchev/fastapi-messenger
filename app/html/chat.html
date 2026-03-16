@@ -20,7 +20,7 @@
             <span class="navbar-text text-white me-3 d-none d-md-block">
                 Log in as: <strong>User123</strong>
             </span>
-            <a href="index.html" class="btn btn-outline-light btn-sm">
+            <a href="login.html" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-box-arrow-right me-1"></i> Exit
             </a>
         </div>
@@ -44,7 +44,7 @@
 
         <div class="col-md-8 col-lg-9 d-flex flex-column bg-white">
 
-<!--            chat header -->
+            <!--chat header-->
             <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
                     <span id="headerIcon" class="fs-5 me-2"></span>
@@ -53,20 +53,24 @@
             </div>
 
 
-
-<!--                messages area-->
+            <!--messages area-->
             <div class="messages-area flex-grow-1 p-4">
-
+                <div class="d-flex flex-column gap-3" id="messagesContainer"></div>
             </div>
 
 
-<!--output area -->
+            <!--output area -->
             <div class="p-3 border-top bg-light">
                 <div class="input-group">
-                    <input type="text" class="form-control border-0 bg-white" placeholder="Напишите что-нибудь...">
-                    <button class="btn btn-primary px-4"><i class="bi bi-send-fill"></i></button>
+                    <input type="text" class="form-control border-0 bg-white" id="msgInput" placeholder="Write a message..."
+                    onkeydown="if (event.key === 'Enter') sendMessage()">
+                    <button class="btn btn-primary px-4" onclick="sendMessage()">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
                 </div>
             </div>
+
+
         </div>
     </div>
 </main>
