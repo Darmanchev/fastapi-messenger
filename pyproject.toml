@@ -14,7 +14,6 @@ pydantic = "^2.12.5"
 pydantic-settings = "^2.13.1"
 python-jose = "^3.5.0"
 passlib = "^1.7.4"
-bcrypt = "^5.0.0"
 python-dotenv = "^1.2.2"
 websockets = "^16.0"
 python-multipart = "^0.0.22"
@@ -22,6 +21,7 @@ sqlalchemy = "^2.0.48"
 psycopg2-binary = "^2.9.11"
 asyncpg = "^0.31.0"
 greenlet = "^3.3.2"
+bcrypt = "4.0.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
