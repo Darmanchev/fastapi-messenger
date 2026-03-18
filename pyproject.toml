@@ -12,8 +12,8 @@ motor = "^3.7.1"
 uvicorn = "^0.41.0"
 pydantic = "^2.12.5"
 pydantic-settings = "^2.13.1"
-python-jose = "^3.5.0"
-passlib = "^1.7.4"
+python-jose = {extras = ["cryptography"], version = "^3.5.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-dotenv = "^1.2.2"
 websockets = "^16.0"
 python-multipart = "^0.0.22"
