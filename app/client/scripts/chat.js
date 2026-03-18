@@ -1,4 +1,5 @@
 const API = 'http://localhost:8000/api/v1';
+const WS  = 'ws://localhost:8000/api/v1';
 
 // ── Проверка токена ───────────────────────────
 const token = localStorage.getItem('token');
@@ -30,16 +31,11 @@ let currentUser = null;
 async function loadCurrentUser() {
     try {
         const res = await authFetch(`${API}/auth/me`);
-        if (!res.ok) {
-            logout();
-            return;
-        }
+        if (!res.ok) { logout(); return; }
         currentUser = await res.json();
 
-        // показать username в navbar
         const el = document.getElementById('currentUsername');
         if (el) el.textContent = currentUser.username;
-
     } catch (err) {
         console.error('Ошибка загрузки пользователя:', err);
     }
@@ -61,6 +57,33 @@ function getMeta(name) {
 let currentId   = null;
 let allChannels = [];
 
+// ── WebSocket ─────────────────────────────────
+let socket = null;
+
+function connectWebSocket(channelId) {
+    // закрываем старое соединение
+    if (socket) socket.close();
+
+    socket = new WebSocket(`${WS}/ws/${channelId}?token=${token}`);
+
+    socket.onopen = () => {
+        console.log(`WebSocket подключён к каналу ${channelId}`);
+    };
+
+    socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        appendMessage(msg);  // новое сообщение — добавляем в DOM
+    };
+
+    socket.onclose = () => {
+        console.log('WebSocket закрыт');
+    };
+
+    socket.onerror = (err) => {
+        console.error('WebSocket ошибка:', err);
+    };
+}
+
 // ── Загрузить каналы из API ───────────────────
 async function loadChannels() {
     try {
@@ -77,7 +100,7 @@ async function loadChannels() {
     }
 }
 
-// ── Загрузить сообщения канала из API ─────────
+// ── Загрузить историю сообщений из API ────────
 async function loadMessages(channelId) {
     try {
         const res      = await authFetch(`${API}/channels/${channelId}/messages`);
@@ -140,63 +163,57 @@ function switchChannel(id) {
     document.getElementById('headerIcon').textContent = meta.icon;
     document.getElementById('headerName').textContent = '# ' + ch.name;
 
+    // загружаем историю и подключаем WebSocket
     loadMessages(id);
+    connectWebSocket(id);
 }
 
-// ── Рендер сообщений ──────────────────────────
+// ── Рендер всех сообщений (история) ──────────
 function renderMessages(msgs) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
+    msgs.forEach(m => appendMessage(m));
+}
 
-    msgs.forEach(m => {
-        const div = document.createElement('div');
+// ── Добавить одно сообщение в DOM ────────────
+function appendMessage(m) {
+    const container = document.getElementById('messagesContainer');
+    const div       = document.createElement('div');
+    const isMe      = currentUser && m.author.username === currentUser.username;
 
-        // сравниваем с текущим пользователем из /auth/me
-        const isMe = currentUser && m.author.username === currentUser.username;
+    div.className      = 'p-2 px-3 rounded-3 shadow-sm ' +
+        (isMe ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
+    div.style.maxWidth = '75%';
 
-        div.className  = 'p-2 px-3 rounded-3 shadow-sm ' +
-            (isMe ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
-        div.style.maxWidth = '75%';
+    if (!isMe) {
+        div.innerHTML = `
+            <small class="fw-semibold d-block text-primary mb-1">${m.author.username}</small>
+            ${m.content}
+            <small class="d-block text-muted mt-1" style="font-size:0.7rem">
+                ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+            </small>`;
+    } else {
+        div.innerHTML = `
+            ${m.content}
+            <small class="d-block text-white-50 mt-1" style="font-size:0.7rem">
+                ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+            </small>`;
+    }
 
-        if (!isMe) {
-            div.innerHTML = `
-                <small class="fw-semibold d-block text-primary mb-1">${m.author.username}</small>
-                ${m.content}
-                <small class="d-block text-muted mt-1" style="font-size:0.7rem">
-                    ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
-                </small>`;
-        } else {
-            div.innerHTML = `
-                ${m.content}
-                <small class="d-block text-white-50 mt-1" style="font-size:0.7rem">
-                    ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
-                </small>`;
-        }
-
-        container.appendChild(div);
-    });
+    container.appendChild(div);
 
     const area = document.querySelector('.messages-area');
     area.scrollTop = area.scrollHeight;
 }
 
-// ── Отправка сообщения ────────────────────────
+// ── Отправка через WebSocket ──────────────────
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const text  = input.value.trim();
-    if (!text || !currentId) return;
+    if (!text || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-    // TODO: заменить на WebSocket
-    const div = document.createElement('div');
-    div.className      = 'p-2 px-3 rounded-3 shadow-sm bg-primary text-white align-self-end';
-    div.style.maxWidth = '75%';
-    div.textContent    = text;
-
-    document.getElementById('messagesContainer').appendChild(div);
+    socket.send(JSON.stringify({ content: text }));
     input.value = '';
-
-    const area = document.querySelector('.messages-area');
-    area.scrollTop = area.scrollHeight;
 }
 
 // ── Удалить канал ─────────────────────────────
@@ -212,6 +229,8 @@ async function deleteChannel() {
         });
 
         if (res.status === 204) {
+            if (socket) socket.close();
+
             allChannels = allChannels.filter(c => c.id !== currentId);
             currentId   = null;
 
