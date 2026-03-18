@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    APP_NAME: str = "BestMessenger API"
     DATABASE_URL: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

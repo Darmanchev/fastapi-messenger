@@ -1,151 +1,163 @@
-const CHANNELS = [
-    {
-        id: 1,
-        name: 'general',
-        icon: '💬',
-        color: '3d8bfd',
-        messages: [
-            { from: 'Alice',  me: false, text: 'Привет всем! Добро пожаловать в #general 👋' },
-            { from: 'Bob',    me: false, text: 'Спасибо! Рад быть здесь.' },
-            { from: 'You',    me: true,  text: 'Всем привет! Чем занимаемся?' },
-            { from: 'Alice',  me: false, text: 'Пишем мессенджер для универа' },
-        ]
-    },
-    {
-        id: 2,
-        name: 'random',
-        icon: '🎲',
-        color: '20c997',
-        messages: [
-            { from: 'Dave',   me: false, text: 'Видели новый мем про JavaScript?' },
-            { from: 'Eve',    me: false, text: 'Хаха, да! Очень точно.' },
-            { from: 'You',    me: true,  text: 'Скиньте ссылку!' },
-            { from: 'Dave',   me: false, text: 'Секунду, ищу...' },
-        ]
-    },
-    {
-        id: 3,
-        name: 'tech',
-        icon: '⚙️',
-        color: 'fd7e14',
-        messages: [
-            { from: 'Grace',  me: false, text: 'FastAPI лучше Flask для новых проектов.' },
-            { from: 'Hank',   me: false, text: 'Согласен. Async — это важно.' },
-            { from: 'You',    me: true,  text: 'И автодокументация через Swagger 🔥' },
-            { from: 'Grace',  me: false, text: 'Именно! Плюс Pydantic валидация.' },
-        ]
-    },
-    {
-        id: 4,
-        name: 'announcements',
-        icon: '📢',
-        color: 'dc3545',
-        messages: [
-            { from: 'Admin',  me: false, text: '🎉 BestMessenger v1.0 запущен!' },
-            { from: 'Admin',  me: false, text: 'Новые функции: каналы, поиск, WebSocket.' },
-            { from: 'Alice',  me: false, text: 'Отличная работа команда! 🚀' },
-            { from: 'You',    me: true,  text: 'Новый UI выглядит классно!' },
-        ]
-    },
-    {
-        id: 5,
-        name: 'design',
-        icon: '🎨',
-        color: '6f42c1',
-        messages: [
-            { from: 'Jane',   me: false, text: 'Макеты тёмной темы готовы 🌙' },
-            { from: 'You',    me: true,  text: 'Отлично! Нравится цветовая палитра.' },
-            { from: 'Jane',   me: false, text: 'Спасибо! Тёмно-синий + индиго акцент.' },
-            { from: 'Kate',   me: false, text: 'Можно посмотреть светлую версию?' },
-        ]
-    },
-];
+const API = 'http://localhost:8000/api/v1';
 
-let currentId = null;
+// Иконки и цвета для каналов — только визуал, не данные
+const CHANNEL_META = {
+    'general':       { icon: '💬', color: '3d8bfd' },
+    'random':        { icon: '🎲', color: '20c997' },
+    'tech':          { icon: '⚙️', color: 'fd7e14' },
+    'announcements': { icon: '📢', color: 'dc3545' },
+    'design':        { icon: '🎨', color: '6f42c1' },
+};
 
-// ── Рендер списка каналов ──
+function getMeta(name) {
+    return CHANNEL_META[name] || { icon: '💬', color: '6c757d' };
+}
+
+let currentId   = null;
+let allChannels = [];   // сохраняем каналы из API
+
+// ── Загрузить каналы из API ────────────────────
+async function loadChannels() {
+    try {
+        const res      = await fetch(`${API}/channels`);
+        const channels = await res.json();
+        allChannels    = channels;
+        renderChannels(channels);
+
+        // открываем первый канал
+        if (channels.length > 0) {
+            switchChannel(channels[0].id);
+        }
+    } catch (err) {
+        console.error('Ошибка загрузки каналов:', err);
+    }
+}
+
+// ── Загрузить сообщения канала из API ─────────
+async function loadMessages(channelId) {
+    try {
+        const res      = await fetch(`${API}/channels/${channelId}/messages`);
+        const messages = await res.json();
+        renderMessages(messages);
+    } catch (err) {
+        console.error('Ошибка загрузки сообщений:', err);
+    }
+}
+
+// ── Рендер списка каналов ─────────────────────
 function renderChannels(list) {
     const el = document.getElementById('channelsList');
     el.innerHTML = '';
+
     list.forEach(ch => {
-        const a = document.createElement('a');
-        a.href = '#';
+        const meta = getMeta(ch.name);
+        const a    = document.createElement('a');
+
+        a.href      = '#';
         a.className = 'list-group-item list-group-item-action p-3 border-0 border-bottom' +
                       (ch.id === currentId ? ' active' : '');
+
         a.innerHTML = `
             <div class="d-flex align-items-center">
                 <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
-                     style="width:40px;height:40px;background:#${ch.color}22;font-size:18px;flex-shrink:0;">
-                    ${ch.icon}
+                     style="width:40px;height:40px;background:#${meta.color}22;font-size:18px;flex-shrink:0;">
+                    ${meta.icon}
                 </div>
                 <div class="w-100 overflow-hidden">
                     <div class="d-flex justify-content-between">
                         <h6 class="mb-0 text-truncate"># ${ch.name}</h6>
-                        <small class="${ch.id === currentId ? 'text-white-50' : 'text-muted'}">${ch.messages.length} msg</small>
                     </div>
-                    <small class="${ch.id === currentId ? 'text-white-50' : 'text-muted'} text-truncate d-block">
-                        ${ch.messages.at(-1).text}
-                    </small>
                 </div>
             </div>`;
+
         a.onclick = (e) => { e.preventDefault(); switchChannel(ch.id); };
         el.appendChild(a);
     });
 }
 
-// ── Filter channels ──
+// ── Фильтр каналов ────────────────────────────
 function filterChannels(q) {
-    const filtered = CHANNELS.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+    const filtered = allChannels.filter(c =>
+        c.name.toLowerCase().includes(q.toLowerCase())
+    );
     renderChannels(filtered);
 }
 
-// ── Switch channel ──
+// ── Переключение канала ───────────────────────
 function switchChannel(id) {
-    currentId = id;
-    const ch = CHANNELS.find(c => c.id === id);
+    currentId  = id;
+    const ch   = allChannels.find(c => c.id === id);
     if (!ch) return;
 
-    renderChannels(CHANNELS);
+    const meta = getMeta(ch.name);
 
-    document.getElementById('headerIcon').textContent = ch.icon;
+    // обновить сайдбар
+    renderChannels(allChannels);
+
+    // обновить заголовок
+    document.getElementById('headerIcon').textContent = meta.icon;
     document.getElementById('headerName').textContent = '# ' + ch.name;
 
-    renderMessages(ch.messages);
+    // загрузить сообщения из API
+    loadMessages(id);
 }
 
-// ── Rendering messages ──
+// ── Рендер сообщений ──────────────────────────
 function renderMessages(msgs) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
+
     msgs.forEach(m => {
         const div = document.createElement('div');
-        div.className = 'p-2 px-3 rounded-3 shadow-sm ' +
-            (m.me ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
+
+        // message.author.username — приходит из API (MessageOut → author: UserOut)
+        const isMe = m.author.username === 'alice'; // временно — заменим на JWT
+
+        div.className  = 'p-2 px-3 rounded-3 shadow-sm ' +
+            (isMe ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
         div.style.maxWidth = '75%';
-        if (!m.me) {
-            div.innerHTML = `<small class="fw-semibold d-block text-primary mb-1">${m.from}</small>${m.text}`;
+
+        if (!isMe) {
+            div.innerHTML = `
+                <small class="fw-semibold d-block text-primary mb-1">${m.author.username}</small>
+                ${m.content}
+                <small class="d-block text-muted mt-1" style="font-size:0.7rem">
+                    ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                </small>`;
         } else {
-            div.textContent = m.text;
+            div.innerHTML = `
+                ${m.content}
+                <small class="d-block text-white-50 mt-1" style="font-size:0.7rem">
+                    ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+                </small>`;
         }
+
         container.appendChild(div);
     });
+
+    // прокрутить вниз
     const area = document.querySelector('.messages-area');
     area.scrollTop = area.scrollHeight;
 }
 
-// ── Send message ──
+// ── Отправка сообщения (пока локально) ────────
 function sendMessage() {
     const input = document.getElementById('msgInput');
-    const text = input.value.trim();
+    const text  = input.value.trim();
     if (!text || !currentId) return;
 
-    const ch = CHANNELS.find(c => c.id === currentId);
-    ch.messages.push({ from: 'You', me: true, text });
+    // TODO: заменить на WebSocket после авторизации
+    const div = document.createElement('div');
+    div.className  = 'p-2 px-3 rounded-3 shadow-sm bg-primary text-white align-self-end';
+    div.style.maxWidth = '75%';
+    div.textContent    = text;
+
+    document.getElementById('messagesContainer').appendChild(div);
     input.value = '';
 
-    renderMessages(ch.messages);
-    renderChannels(CHANNELS);
+    const area = document.querySelector('.messages-area');
+    area.scrollTop = area.scrollHeight;
 }
 
-// ── Load first channel at start ──
-switchChannel(1);
+// ── Старт ─────────────────────────────────────
+loadChannels();
