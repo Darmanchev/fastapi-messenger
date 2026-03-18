@@ -1,6 +1,51 @@
 const API = 'http://localhost:8000/api/v1';
 
-// Иконки и цвета для каналов — только визуал, не данные
+// ── Проверка токена ───────────────────────────
+const token = localStorage.getItem('token');
+if (!token) {
+    window.location.href = 'login.html';
+}
+
+// ── Хелпер — все запросы с токеном ───────────
+function authFetch(url, options = {}) {
+    return fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers,
+        },
+    });
+}
+
+// ── Выход ─────────────────────────────────────
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+}
+
+// ── Текущий пользователь ──────────────────────
+let currentUser = null;
+
+async function loadCurrentUser() {
+    try {
+        const res = await authFetch(`${API}/auth/me`);
+        if (!res.ok) {
+            logout();
+            return;
+        }
+        currentUser = await res.json();
+
+        // показать username в navbar
+        const el = document.getElementById('currentUsername');
+        if (el) el.textContent = currentUser.username;
+
+    } catch (err) {
+        console.error('Ошибка загрузки пользователя:', err);
+    }
+}
+
+// ── Иконки и цвета для каналов ───────────────
 const CHANNEL_META = {
     'general':       { icon: '💬', color: '3d8bfd' },
     'random':        { icon: '🎲', color: '20c997' },
@@ -14,17 +59,16 @@ function getMeta(name) {
 }
 
 let currentId   = null;
-let allChannels = [];   // сохраняем каналы из API
+let allChannels = [];
 
-// ── Загрузить каналы из API ────────────────────
+// ── Загрузить каналы из API ───────────────────
 async function loadChannels() {
     try {
-        const res      = await fetch(`${API}/channels`);
+        const res      = await authFetch(`${API}/channels`);
         const channels = await res.json();
         allChannels    = channels;
         renderChannels(channels);
 
-        // открываем первый канал
         if (channels.length > 0) {
             switchChannel(channels[0].id);
         }
@@ -36,7 +80,7 @@ async function loadChannels() {
 // ── Загрузить сообщения канала из API ─────────
 async function loadMessages(channelId) {
     try {
-        const res      = await fetch(`${API}/channels/${channelId}/messages`);
+        const res      = await authFetch(`${API}/channels/${channelId}/messages`);
         const messages = await res.json();
         renderMessages(messages);
     } catch (err) {
@@ -85,20 +129,17 @@ function filterChannels(q) {
 
 // ── Переключение канала ───────────────────────
 function switchChannel(id) {
-    currentId  = id;
-    const ch   = allChannels.find(c => c.id === id);
+    currentId = id;
+    const ch  = allChannels.find(c => c.id === id);
     if (!ch) return;
 
     const meta = getMeta(ch.name);
 
-    // обновить сайдбар
     renderChannels(allChannels);
 
-    // обновить заголовок
     document.getElementById('headerIcon').textContent = meta.icon;
     document.getElementById('headerName').textContent = '# ' + ch.name;
 
-    // загрузить сообщения из API
     loadMessages(id);
 }
 
@@ -110,8 +151,8 @@ function renderMessages(msgs) {
     msgs.forEach(m => {
         const div = document.createElement('div');
 
-        // message.author.username — приходит из API (MessageOut → author: UserOut)
-        const isMe = m.author.username === 'alice'; // временно — заменим на JWT
+        // сравниваем с текущим пользователем из /auth/me
+        const isMe = currentUser && m.author.username === currentUser.username;
 
         div.className  = 'p-2 px-3 rounded-3 shadow-sm ' +
             (isMe ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
@@ -135,20 +176,19 @@ function renderMessages(msgs) {
         container.appendChild(div);
     });
 
-    // прокрутить вниз
     const area = document.querySelector('.messages-area');
     area.scrollTop = area.scrollHeight;
 }
 
-// ── Отправка сообщения (пока локально) ────────
+// ── Отправка сообщения ────────────────────────
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const text  = input.value.trim();
     if (!text || !currentId) return;
 
-    // TODO: заменить на WebSocket после авторизации
+    // TODO: заменить на WebSocket
     const div = document.createElement('div');
-    div.className  = 'p-2 px-3 rounded-3 shadow-sm bg-primary text-white align-self-end';
+    div.className      = 'p-2 px-3 rounded-3 shadow-sm bg-primary text-white align-self-end';
     div.style.maxWidth = '75%';
     div.textContent    = text;
 
@@ -167,21 +207,18 @@ async function deleteChannel() {
     if (!confirm(`Удалить канал #${ch.name}?`)) return;
 
     try {
-        const res = await fetch(`${API}/channels/${currentId}`, {
+        const res = await authFetch(`${API}/channels/${currentId}`, {
             method: 'DELETE',
         });
 
         if (res.status === 204) {
-            // убираем из списка
             allChannels = allChannels.filter(c => c.id !== currentId);
             currentId   = null;
 
-            // очищаем заголовок и сообщения
             document.getElementById('headerIcon').textContent = '';
             document.getElementById('headerName').textContent = '—';
             document.getElementById('messagesContainer').innerHTML = '';
 
-            // переключаемся на первый оставшийся канал
             renderChannels(allChannels);
             if (allChannels.length > 0) {
                 switchChannel(allChannels[0].id);
@@ -194,9 +231,9 @@ async function deleteChannel() {
 
 // ── Создать канал ─────────────────────────────
 async function createChannel() {
-    const input    = document.getElementById('newChannelName');
-    const errorEl  = document.getElementById('channelError');
-    const name     = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+    const input   = document.getElementById('newChannelName');
+    const errorEl = document.getElementById('channelError');
+    const name    = input.value.trim().toLowerCase().replace(/\s+/g, '-');
 
     if (name.length < 2) {
         errorEl.textContent = 'Минимум 2 символа';
@@ -204,9 +241,8 @@ async function createChannel() {
     }
 
     try {
-        const res = await fetch(`${API}/channels`, {
+        const res = await authFetch(`${API}/channels`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name }),
         });
 
@@ -218,16 +254,13 @@ async function createChannel() {
 
         const channel = await res.json();
 
-        // закрываем модалку
         bootstrap.Modal.getInstance(
             document.getElementById('createChannelModal')
         ).hide();
 
-        // очищаем поле
-        input.value     = '';
+        input.value         = '';
         errorEl.textContent = '';
 
-        // добавляем в список и переключаемся
         allChannels.push(channel);
         renderChannels(allChannels);
         switchChannel(channel.id);
@@ -239,4 +272,5 @@ async function createChannel() {
 }
 
 // ── Старт ─────────────────────────────────────
+loadCurrentUser();
 loadChannels();
