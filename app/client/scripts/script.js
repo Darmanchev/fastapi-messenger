@@ -159,5 +159,84 @@ function sendMessage() {
     area.scrollTop = area.scrollHeight;
 }
 
+// ── Удалить канал ─────────────────────────────
+async function deleteChannel() {
+    if (!currentId) return;
+
+    const ch = allChannels.find(c => c.id === currentId);
+    if (!confirm(`Удалить канал #${ch.name}?`)) return;
+
+    try {
+        const res = await fetch(`${API}/channels/${currentId}`, {
+            method: 'DELETE',
+        });
+
+        if (res.status === 204) {
+            // убираем из списка
+            allChannels = allChannels.filter(c => c.id !== currentId);
+            currentId   = null;
+
+            // очищаем заголовок и сообщения
+            document.getElementById('headerIcon').textContent = '';
+            document.getElementById('headerName').textContent = '—';
+            document.getElementById('messagesContainer').innerHTML = '';
+
+            // переключаемся на первый оставшийся канал
+            renderChannels(allChannels);
+            if (allChannels.length > 0) {
+                switchChannel(allChannels[0].id);
+            }
+        }
+    } catch (err) {
+        console.error('Ошибка удаления:', err);
+    }
+}
+
+// ── Создать канал ─────────────────────────────
+async function createChannel() {
+    const input    = document.getElementById('newChannelName');
+    const errorEl  = document.getElementById('channelError');
+    const name     = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+
+    if (name.length < 2) {
+        errorEl.textContent = 'Минимум 2 символа';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/channels`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+
+        if (res.status === 400) {
+            const data = await res.json();
+            errorEl.textContent = data.detail;
+            return;
+        }
+
+        const channel = await res.json();
+
+        // закрываем модалку
+        bootstrap.Modal.getInstance(
+            document.getElementById('createChannelModal')
+        ).hide();
+
+        // очищаем поле
+        input.value     = '';
+        errorEl.textContent = '';
+
+        // добавляем в список и переключаемся
+        allChannels.push(channel);
+        renderChannels(allChannels);
+        switchChannel(channel.id);
+
+    } catch (err) {
+        errorEl.textContent = 'Ошибка соединения с сервером';
+        console.error(err);
+    }
+}
+
 // ── Старт ─────────────────────────────────────
 loadChannels();

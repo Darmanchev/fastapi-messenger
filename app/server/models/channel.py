@@ -10,4 +10,4 @@ class Channel(Base):
     name = Column(String(50),unique=True, nullable=False)
 
     # relationships
-    messages = relationship("Message", back_populates="channel")
+    messages = relationship("Message", back_populates="channel", cascade="all, delete-orphan")
