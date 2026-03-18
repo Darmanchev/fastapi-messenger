@@ -290,6 +290,45 @@ async function createChannel() {
     }
 }
 
+async function searchMessages(q) {
+    if (!currentId) return;
+
+    // если поле пустое — показываем все сообщения
+    if (!q.trim()) {
+        loadMessages(currentId);
+        return;
+    }
+
+    try {
+        const res  = await authFetch(`${API}/channels/${currentId}/search?q=${encodeURIComponent(q)}`);
+        const msgs = await res.json();
+
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+
+        if (msgs.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted mt-4">
+                    <i class="bi bi-search me-1"></i>
+                    No results for "${q}"
+                </div>`;
+            return;
+        }
+
+        // показываем результаты с подсветкой
+        msgs.forEach(m => appendMessage(m, q));
+
+    } catch (err) {
+        console.error('Ошибка поиска:', err);
+    }
+}
+
+function clearSearch() {
+    const input = document.getElementById('messageSearch');
+    if (input) input.value = '';
+    if (currentId) loadMessages(currentId);
+}
+
 // ── Старт ─────────────────────────────────────
 loadCurrentUser();
 loadChannels();
