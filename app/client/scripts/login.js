@@ -13,7 +13,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const errorMsg = document.getElementById('errorMsg');
     const submitBtn = document.getElementById('submitBtn');
 
-    // Блокируем кнопку пока идёт запрос
+    // deactivate btn while searching
     submitBtn.disabled    = true;
     submitBtn.textContent = 'Loading...';
     errorMsg.classList.add('d-none');
@@ -28,20 +28,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await res.json();
 
         if (!res.ok) {
-            // Показываем ошибку от сервера
-            errorMsg.textContent = data.detail || 'Ошибка входа';
+            errorMsg.textContent = data.detail || 'Login error';
             errorMsg.classList.remove('d-none');
             return;
         }
 
-        // Сохраняем токен
+        // save token
         localStorage.setItem('token', data.access_token);
 
-        // Переходим в чат
+        // go to our chat page
         window.location.href = 'chat.html';
 
     } catch (err) {
-        errorMsg.textContent = 'Ошибка соединения с сервером';
+        errorMsg.textContent = 'Error connecting to the server';
         errorMsg.classList.remove('d-none');
     } finally {
         submitBtn.disabled    = false;

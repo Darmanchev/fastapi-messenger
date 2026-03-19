@@ -13,17 +13,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=Token, status_code=201)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Проверяем что email свободен
+    # check if email is already registered
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email уже занят")
 
-    # Проверяем что username свободен
+    # check if username is already registered
     result = await db.execute(select(User).where(User.username == data.username))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Username уже занят")
 
-    # Создаём пользователя — хэшируем пароль
+    # create new user and hash password
     user = User(
         username=data.username,
         email=data.email,
@@ -33,21 +33,21 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
-    # Сразу выдаём токен — не нужно делать отдельный вход
+    # give access token
     return {"access_token": create_token(user.id)}
 
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginData, db: AsyncSession = Depends(get_db)):
-    # Ищем пользователя по email
+    # search for user by email
     result = await db.execute(select(User).where(User.email == data.email))
     user   = result.scalar_one_or_none()
 
-    # Проверяем пароль
+    # verify password
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(
             status_code=401,
-            detail="Неверный email или пароль",
+            detail="Incorrect email or password",
         )
 
     return {"access_token": create_token(user.id)}
@@ -55,5 +55,5 @@ async def login(data: LoginData, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
-    """Возвращает данные текущего пользователя по токену"""
+    """Returns the current user's data based on the token"""
     return current_user

@@ -1,13 +1,13 @@
 const API = 'http://localhost:8000/api/v1';
 const WS  = 'ws://localhost:8000/api/v1';
 
-// ── Проверка токена ───────────────────────────
+// validation token
 const token = localStorage.getItem('token');
 if (!token) {
     window.location.href = 'login.html';
 }
 
-// ── Хелпер — все запросы с токеном ───────────
+// help function for fetch with auth header
 function authFetch(url, options = {}) {
     return fetch(url, {
         ...options,
@@ -19,13 +19,11 @@ function authFetch(url, options = {}) {
     });
 }
 
-// ── Выход ─────────────────────────────────────
 function logout() {
     localStorage.removeItem('token');
     window.location.href = 'login.html';
 }
 
-// ── Текущий пользователь ──────────────────────
 let currentUser = null;
 
 async function loadCurrentUser() {
@@ -37,11 +35,11 @@ async function loadCurrentUser() {
         const el = document.getElementById('currentUsername');
         if (el) el.textContent = currentUser.username;
     } catch (err) {
-        console.error('Ошибка загрузки пользователя:', err);
+        console.error('Error when download user', err);
     }
 }
 
-// ── Иконки и цвета для каналов ───────────────
+// defaultProps for channel icons and colors
 const CHANNEL_META = {
     'general':       { icon: '💬', color: '3d8bfd' },
     'random':        { icon: '🎲', color: '20c997' },
@@ -57,34 +55,33 @@ function getMeta(name) {
 let currentId   = null;
 let allChannels = [];
 
-// ── WebSocket ─────────────────────────────────
 let socket = null;
 
 function connectWebSocket(channelId) {
-    // закрываем старое соединение
+    // close previous socket
     if (socket) socket.close();
 
     socket = new WebSocket(`${WS}/ws/${channelId}?token=${token}`);
 
     socket.onopen = () => {
-        console.log(`WebSocket подключён к каналу ${channelId}`);
+        console.log(`WebSocket connect to channel ${channelId}`);
     };
 
     socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
-        appendMessage(msg);  // новое сообщение — добавляем в DOM
+        appendMessage(msg); // add message in DOM
     };
 
     socket.onclose = () => {
-        console.log('WebSocket закрыт');
+        console.log('WebSocket close');
     };
 
     socket.onerror = (err) => {
-        console.error('WebSocket ошибка:', err);
+        console.error('WebSocket error:', err);
     };
 }
 
-// ── Загрузить каналы из API ───────────────────
+// load channels from API
 async function loadChannels() {
     try {
         const res      = await authFetch(`${API}/channels`);
@@ -96,22 +93,21 @@ async function loadChannels() {
             switchChannel(channels[0].id);
         }
     } catch (err) {
-        console.error('Ошибка загрузки каналов:', err);
+        console.error('Error loading channels:', err);
     }
 }
 
-// ── Загрузить историю сообщений из API ────────
+// load msg from API
 async function loadMessages(channelId) {
     try {
         const res      = await authFetch(`${API}/channels/${channelId}/messages`);
         const messages = await res.json();
         renderMessages(messages);
     } catch (err) {
-        console.error('Ошибка загрузки сообщений:', err);
+        console.error('Error loading messages:', err);
     }
 }
 
-// ── Рендер списка каналов ─────────────────────
 function renderChannels(list) {
     const el = document.getElementById('channelsList');
     el.innerHTML = '';
@@ -142,7 +138,6 @@ function renderChannels(list) {
     });
 }
 
-// ── Фильтр каналов ────────────────────────────
 function filterChannels(q) {
     const filtered = allChannels.filter(c =>
         c.name.toLowerCase().includes(q.toLowerCase())
@@ -150,7 +145,6 @@ function filterChannels(q) {
     renderChannels(filtered);
 }
 
-// ── Переключение канала ───────────────────────
 function switchChannel(id) {
     currentId = id;
     const ch  = allChannels.find(c => c.id === id);
@@ -163,50 +157,84 @@ function switchChannel(id) {
     document.getElementById('headerIcon').textContent = meta.icon;
     document.getElementById('headerName').textContent = '# ' + ch.name;
 
-    // загружаем историю и подключаем WebSocket
+    // load history and connect WebSocket
     loadMessages(id);
     connectWebSocket(id);
 }
 
-// ── Рендер всех сообщений (история) ──────────
+// render all msg
 function renderMessages(msgs) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
     msgs.forEach(m => appendMessage(m));
 }
 
-// ── Добавить одно сообщение в DOM ────────────
-function appendMessage(m) {
+function appendMessage(m, highlight = '') {
     const container = document.getElementById('messagesContainer');
     const div       = document.createElement('div');
     const isMe      = currentUser && m.author.username === currentUser.username;
 
-    div.className      = 'p-2 px-3 rounded-3 shadow-sm ' +
+    div.className      = 'p-2 px-3 rounded-3 shadow-sm position-relative msg-bubble ' +
         (isMe ? 'bg-primary text-white align-self-end' : 'bg-light align-self-start');
     div.style.maxWidth = '75%';
+
+    let content = m.content;
+    if (highlight) {
+        const re = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        content  = content.replace(re, '<mark>$1</mark>');
+    }
+
+    // delete btn only for your msg
+    const deleteBtn = isMe ? `
+        <button class="btn btn-sm delete-msg-btn"
+                onclick="deleteMessage(${m.id})"
+                title="Delete">
+            <i class="bi bi-trash" style="font-size:0.7rem"></i>
+        </button>` : '';
 
     if (!isMe) {
         div.innerHTML = `
             <small class="fw-semibold d-block text-primary mb-1">${m.author.username}</small>
-            ${m.content}
+            ${content}
             <small class="d-block text-muted mt-1" style="font-size:0.7rem">
                 ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
             </small>`;
     } else {
         div.innerHTML = `
-            ${m.content}
+            ${deleteBtn}
+            ${content}
             <small class="d-block text-white-50 mt-1" style="font-size:0.7rem">
                 ${new Date(m.sent_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
             </small>`;
     }
 
-    container.appendChild(div);
+    div.dataset.messageId = m.id;
 
+    container.appendChild(div);
     const area = document.querySelector('.messages-area');
     area.scrollTop = area.scrollHeight;
 }
 
-// ── Отправка через WebSocket ──────────────────
+async function deleteMessage(messageId) {
+    if (!confirm('Delete message?')) return;
+
+    try {
+        const res = await authFetch(
+            `${API}/channels/${currentId}/messages/${messageId}`,
+            { method: 'DELETE' }
+        );
+
+        if (res.status === 204) {
+            // remove msg from DOM
+            const el = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (el) el.remove();
+        }
+    } catch (err) {
+        console.error('Error deleting message:', err);
+    }
+}
+
+// send with WebSocket
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const text  = input.value.trim();
@@ -216,12 +244,11 @@ function sendMessage() {
     input.value = '';
 }
 
-// ── Удалить канал ─────────────────────────────
 async function deleteChannel() {
     if (!currentId) return;
 
     const ch = allChannels.find(c => c.id === currentId);
-    if (!confirm(`Удалить канал #${ch.name}?`)) return;
+    if (!confirm(`Delete channel #${ch.name}?`)) return;
 
     try {
         const res = await authFetch(`${API}/channels/${currentId}`, {
@@ -244,18 +271,17 @@ async function deleteChannel() {
             }
         }
     } catch (err) {
-        console.error('Ошибка удаления:', err);
+        console.error('Deletion error:', err);
     }
 }
 
-// ── Создать канал ─────────────────────────────
 async function createChannel() {
     const input   = document.getElementById('newChannelName');
     const errorEl = document.getElementById('channelError');
     const name    = input.value.trim().toLowerCase().replace(/\s+/g, '-');
 
     if (name.length < 2) {
-        errorEl.textContent = 'Минимум 2 символа';
+        errorEl.textContent = 'Minimum 2 symbols';
         return;
     }
 
@@ -285,7 +311,7 @@ async function createChannel() {
         switchChannel(channel.id);
 
     } catch (err) {
-        errorEl.textContent = 'Ошибка соединения с сервером';
+        errorEl.textContent = 'Error connecting to the server';
         console.error(err);
     }
 }
@@ -293,7 +319,7 @@ async function createChannel() {
 async function searchMessages(q) {
     if (!currentId) return;
 
-    // если поле пустое — показываем все сообщения
+    // if search is empty, show all msg
     if (!q.trim()) {
         loadMessages(currentId);
         return;
@@ -315,11 +341,11 @@ async function searchMessages(q) {
             return;
         }
 
-        // показываем результаты с подсветкой
+        // show all msg which find
         msgs.forEach(m => appendMessage(m, q));
 
     } catch (err) {
-        console.error('Ошибка поиска:', err);
+        console.error('Search error:', err);
     }
 }
 
@@ -329,6 +355,5 @@ function clearSearch() {
     if (currentId) loadMessages(currentId);
 }
 
-// ── Старт ─────────────────────────────────────
 loadCurrentUser();
 loadChannels();

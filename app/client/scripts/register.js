@@ -1,6 +1,6 @@
 const API = 'http://localhost:8000/api/v1';
 
-// Если уже залогинен — сразу в чат
+// if log in go to chat
 if (localStorage.getItem('token')) {
     window.location.href = 'chat.html';
 }
@@ -28,17 +28,16 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         const data = await res.json();
 
         if (!res.ok) {
-            errorMsg.textContent = data.detail || 'Ошибка регистрации';
+            errorMsg.textContent = data.detail || 'Registration error';
             errorMsg.classList.remove('d-none');
             return;
         }
-
-        // Сохраняем токен и переходим в чат
+        // save token and go to chat page
         localStorage.setItem('token', data.access_token);
         window.location.href = 'chat.html';
 
     } catch (err) {
-        errorMsg.textContent = 'Ошибка соединения с сервером';
+        errorMsg.textContent = 'Error connecting to the server';
         errorMsg.classList.remove('d-none');
     } finally {
         submitBtn.disabled    = false;

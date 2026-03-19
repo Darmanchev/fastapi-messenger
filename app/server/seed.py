@@ -9,18 +9,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def seed():
-    # 1. Создаем таблицы асинхронно
+    # create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with SessionLocal() as db:
-        # 2. Проверка на существующие данные
+        # check if db is already seeded
         result = await db.execute(select(User))
         if result.first():
-            print("⚡ БД уже заполнена.")
+            print("DB already seeded! Skipping.")
             return
 
-        # 3. Создаем пользователей (через список словарей для чистоты)
         user_data = [
             ("alice", "alice@test.com", "123456"),
             ("bob", "bob@test.com", "123456"),
@@ -29,26 +28,25 @@ async def seed():
         users = [User(username=u, email=e, password_hash=pwd_context.hash(p)) for u, e, p in user_data]
         db.add_all(users)
 
-        # 4. Создаем каналы
+        # create channels
         channel_names = ["general", "random", "tech", "announcements", "design"]
         channels = [Channel(name=name) for name in channel_names]
         db.add_all(channels)
 
-        # Сохраняем, чтобы получить ID для сообщений
+        # saving objects to the database
         await db.commit()
         for obj in users + channels: await db.refresh(obj)
 
-        # 5. Сообщения (используем объекты напрямую благодаря back_populates)
         messages = [
-            Message(content="Привет всем! 👋", channel=channels[0], author=users[0]),
-            Message(content="Рад быть здесь!", channel=channels[0], author=users[1]),
-            Message(content="FastAPI лучше Flask.", channel=channels[2], author=users[1]),
-            Message(content="🎉 BestMessenger запущен!", channel=channels[3], author=users[2]),
+            Message(content="HI! 👋", channel=channels[0], author=users[0]),
+            Message(content="Glad to see you", channel=channels[0], author=users[1]),
+            Message(content="FastAPI", channel=channels[2], author=users[1]),
+            Message(content="BestMessenger start!", channel=channels[3], author=users[2]),
         ]
         db.add_all(messages)
         await db.commit()
 
-    print("✅ БД успешно инициализирована демо-данными!")
+    print("Database seeded!")
 
 
 if __name__ == "__main__":

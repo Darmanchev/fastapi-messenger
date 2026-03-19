@@ -20,16 +20,16 @@ async def get_channel(channel_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Channel).where(Channel.id == channel_id))
     channel = result.scalar_one_or_none()
     if not channel:
-        raise HTTPException(status_code=404, detail="Канал не найден")
+        raise HTTPException(status_code=404, detail="Channel not found")
     return channel
 
 
 @router.post("/", response_model=ChannelOut, status_code=201)
 async def create_channel(data: ChannelCreate, db: AsyncSession = Depends(get_db)):
-    # Проверяем что канал с таким именем не существует
+    # check if channel with that name already exists
     result = await db.execute(select(Channel).where(Channel.name == data.name))
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Канал с таким именем уже существует")
+        raise HTTPException(status_code=400, detail="A channel with that name already exists")
 
     channel = Channel(name=data.name)
     db.add(channel)
@@ -43,6 +43,6 @@ async def delete_channel(channel_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Channel).where(Channel.id == channel_id))
     channel = result.scalar_one_or_none()
     if not channel:
-        raise HTTPException(status_code=404, detail="Канал не найден")
+        raise HTTPException(status_code=404, detail="Channel not found")
     await db.delete(channel)
     await db.commit()

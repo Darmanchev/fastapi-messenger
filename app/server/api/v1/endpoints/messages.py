@@ -15,7 +15,7 @@ router = APIRouter(prefix="/channels", tags=["messages"])
 async def get_messages(channel_id: int, db: AsyncSession = Depends(get_db)):
     channel = await db.execute(select(Channel).where(Channel.id == channel_id))
     if not channel.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Канал не найден")
+        raise HTTPException(status_code=404, detail="Channel not found")
 
     result = await db.execute(
         select(Message)
@@ -34,7 +34,7 @@ async def search_messages(
 ):
     channel = await db.execute(select(Channel).where(Channel.id == channel_id))
     if not channel.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Канал не найден")
+        raise HTTPException(status_code=404, detail="Channel not found")
 
     result = await db.execute(
         select(Message)
@@ -46,3 +46,21 @@ async def search_messages(
         .order_by(Message.sent_at.asc())
     )
     return result.scalars().all()
+
+@router.delete("/{channel_id}/messages/{message_id}", status_code=204)
+async def delete_message(
+    channel_id: int,
+    message_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Message).where(
+            Message.id == message_id,
+            Message.channel_id == channel_id,
+        )
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    await db.delete(msg)
+    await db.commit()
