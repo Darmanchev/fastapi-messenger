@@ -64,9 +64,9 @@ admin@test.com  / admin
 ```bash
 make all            # start everything (DB + API)
 make storages       # start only PostgreSQL
-make app            # start only API
+make app            # start only APP
 make all-down       # stop everything
-make app-logs       # view API logs
+make app-logs       # view APP logs
 make app-shell      # open terminal inside API container
 make seed           # fill DB with initial data
 ```
