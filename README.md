@@ -13,7 +13,7 @@ Instant messenger built with FastAPI, PostgreSQL, WebSocket and Bootstrap.
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/Darmanchev/fastapi_chat.git
+git clone https://github.com/Darmanchev/fastapi-messenger.git
 cd fastapi_chat
 ```
 
@@ -24,11 +24,11 @@ cp .env.example .env
 
 Edit `.env` if needed (default values work out of the box):
 ```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin
 POSTGRES_DB=bestmessenger
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/bestmessenger
-SECRET_KEY=your-secret-key-change-this
+SECRET_KEY=secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
@@ -62,12 +62,12 @@ admin@test.com  / admin
 ## Commands
 
 ```bash
-make all            # start everything (DB + API)
+make all            # start everything (DB + APP)
 make storages       # start only PostgreSQL
 make app            # start only APP
 make all-down       # stop everything
 make app-logs       # view APP logs
-make app-shell      # open terminal inside API container
+make app-shell      # open terminal inside APP container
 make seed           # fill DB with initial data
 ```
 
