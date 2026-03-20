@@ -1,8 +1,9 @@
-const API = 'http://localhost:8000/api/v1';
+const HOST = window.location.host;
+const API  = `http://${HOST}/api/v1`;
 
 // if log in go to chat
 if (localStorage.getItem('token')) {
-    window.location.href = 'chat.html';
+    window.location.replace('/chat');
 }
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -34,7 +35,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         }
         // save token and go to chat page
         localStorage.setItem('token', data.access_token);
-        window.location.href = 'chat.html';
+        window.location.replace('/chat');
 
     } catch (err) {
         errorMsg.textContent = 'Error connecting to the server';

@@ -3,14 +3,14 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: main-app
+    container_name: main-app-messenger
     ports:
       - "8000:8000"
     command: "uvicorn app.server.main:app --reload --host 0.0.0.0 --port 8000"
     env_file:
       - ../.env
     volumes:
-      - ..:/fastapi_chat
+      - ..:/fastapi-messenger
     networks:
       - backend
 

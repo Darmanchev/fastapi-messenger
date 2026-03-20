@@ -16,12 +16,12 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     # check if email is already registered
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email уже занят")
+        raise HTTPException(status_code=400, detail="This email address is already taken")
 
     # check if username is already registered
     result = await db.execute(select(User).where(User.username == data.username))
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Username уже занят")
+        raise HTTPException(status_code=400, detail="That username is already taken")
 
     # create new user and hash password
     user = User(

@@ -1,10 +1,12 @@
-const API = 'http://localhost:8000/api/v1';
-const WS  = 'ws://localhost:8000/api/v1';
+const HOST = window.location.host;
+const API  = `http://${HOST}/api/v1`;
+const WS   = `ws://${HOST}/api/v1`;
+
 
 // validation token
 const token = localStorage.getItem('token');
 if (!token) {
-    window.location.href = 'login.html';
+    window.location.replace('/login');
 }
 
 // help function for fetch with auth header
@@ -21,7 +23,7 @@ function authFetch(url, options = {}) {
 
 function logout() {
     localStorage.removeItem('token');
-    window.location.href = 'login.html';
+    window.location.replace('/login');
 }
 
 let currentUser = null;

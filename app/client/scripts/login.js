@@ -1,8 +1,9 @@
-const API = 'http://localhost:8000/api/v1';
+const HOST = window.location.host;
+const API  = `http://${HOST}/api/v1`;
 
-// Если уже залогинен — сразу в чат
+// if already log in go to chat
 if (localStorage.getItem('token')) {
-    window.location.href = 'chat.html';
+    window.location.replace('/chat');
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -37,7 +38,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         localStorage.setItem('token', data.access_token);
 
         // go to our chat page
-        window.location.href = 'chat.html';
+        window.location.replace('/chat');
 
     } catch (err) {
         errorMsg.textContent = 'Error connecting to the server';
