@@ -48,7 +48,7 @@ make seed
 http://localhost:8000/docs   ← API docs
 ```
 
-Open `app/client/html/login.html` in your browser.
+Open `http://localhost:8000/login` in your browser.
 
 Demo accounts:
 ```
