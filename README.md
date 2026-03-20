@@ -14,7 +14,7 @@ Instant messenger built with FastAPI, PostgreSQL, WebSocket and Bootstrap.
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/Darmanchev/fastapi-messenger.git
-cd fastapi_chat
+cd fastapi-messenger
 ```
 
 ### 2. Create `.env` file
